@@ -1210,9 +1210,9 @@ classdef Sequence < handle
                     end
                     data = obj.rotationLibrary.data(rotation_ext(2,1)).array;
                     if addIDs
-                        block.rotation=struct('type','rfShim','rotMat',reshape(data(:),[3 3]),'id',rotation_ext(2,1));
+                        block.rotation=struct('type','rot3D','rotMat',reshape(data(:),[3 3]),'id',rotation_ext(2,1));
                     else
-                        block.rotation=struct('type','rfShim','rotMat',reshape(data(:),[3 3]));
+                        block.rotation=struct('type','rot3D','rotMat',reshape(data(:),[3 3]));
                     end
                 end
                 % unpack delay

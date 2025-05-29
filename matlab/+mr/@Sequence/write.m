@@ -222,6 +222,20 @@ if ~isempty(obj.rfShimLibrary.keys)
     fprintf(fid, '\n');
 end
 
+if ~isempty(obj.rotationLibrary.keys)
+    fprintf(fid, '# Extension specification for rotation matrices:\n');
+    fprintf(fid, '# id num_el rotparm1 rotparm2 rotparm3 ...\n');
+    fprintf(fid, ['extension ROTATIONS ',num2str(obj.getExtensionTypeID('ROTATIONS')),'\n']);
+
+    keys = obj.rotationLibrary.keys;
+    for k = keys
+        fprintf(fid, '%d %d', [k length(obj.rotationLibrary.data(k).array)]); 
+        fprintf(fid, ' %g', obj.rotationLibrary.data(k).array);
+        fprintf(fid, '\n');
+    end
+    fprintf(fid, '\n');
+end
+
 if ~isempty(obj.shapeLibrary.keys)
     fprintf(fid, '# Sequence Shapes\n');
     fprintf(fid, '[SHAPES]\n\n');
