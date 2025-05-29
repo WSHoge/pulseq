@@ -54,6 +54,7 @@ classdef Sequence < handle
         extensionLibrary; % Library of extension events. Extension events form single-linked zero-terminated lists
         shapeLibrary;     % Library of compressed shapes
         rfShimLibrary;    % Library of RF shimming events
+        rotationLibrary; % Library of 3D rotation matrices
         softDelayLibrary; % Library of 'soft delay' extension events.
         softDelayHints1;  % Map of string hints that are the part of the 'soft delay' extension objects
         softDelayHints2;  % cell array of string hints that are the part of the 'soft delay' extension objects
@@ -87,6 +88,7 @@ classdef Sequence < handle
             obj.labelsetLibrary = mr.EventLibrary();
             obj.labelincLibrary = mr.EventLibrary();
             obj.rfShimLibrary = mr.EventLibrary();
+            obj.rotationLibrary = mr.EventLibrary();
             obj.extensionLibrary = mr.EventLibrary();
             obj.extensionStringIDs={};
             obj.extensionNumericIDs=[];
@@ -735,6 +737,19 @@ classdef Sequence < handle
             id = obj.rfShimLibrary.find_or_insert(data(:)');
         end
 
+        function id=registerRotationEvent(obj, event)
+            % registerRotationEvent : Add the event to the libraries (object,
+            % shapes, etc and return the event's ID. This ID should be 
+            % stored in the object to accelerate addBlock()            
+            data = event.rotationMatrix;
+            % confirm that the rotation matrix is valid
+            if ( rank(data) == 3 ) & ( abs(1.0 - det(data)) < 1e-15 )
+                id = obj.rotationLibrary.find_or_insert(data(:)');
+            else
+                error('invalid rotation matrix detected during registerRotationEvent()');
+            end
+        end
+
         %TODO: Replacing blocks in the middle of sequence can cause unused
         %events in the libraries. These can be detected and pruned.
         function setBlock(obj, index, varargin)
@@ -898,6 +913,14 @@ classdef Sequence < handle
                             % ext=struct('type', 1, 'ref', id);
                             ext=struct('type', obj.getExtensionTypeID('RF_SHIMS'), 'ref', id);
                             extensions=[extensions ext];
+                        case 'rot3D' 
+                            if isfield(event,'id')
+                                id=event.id;
+                            else
+                                id = obj.registerRotationEvent(event);
+                            end
+                            ext=struct('type', obj.getExtensionTypeID('ROTATIONS'), 'ref', id);
+                            extensions=[extensions ext];
                         otherwise
                             error('Attempting to add an unknown event to the block.');
                     end
@@ -923,7 +946,7 @@ classdef Sequence < handle
                 % key mapping then... The trick is that we rely on the
                 % sorting of the extension IDs and then we can always find
                 % the last one in the list by setting the reference to the
-                % next to 0 and then proceed with the otehr elements.
+                % next to 0 and then proceed with the other elements.
                 [~,I]=sort([extensions(:).ref]);
                 extensions=extensions(I);
                 all_found=true;
@@ -1179,6 +1202,19 @@ classdef Sequence < handle
                         block.rfShim=struct('type','rfShim','shimVector',data(1:2:end).*exp(1i*2*pi*data(2:2:end)));
                     end
                 end
+                % unpack 3D rotations
+                rotation_ext=raw_block.ext(:,raw_block.ext(1,:)==obj.getExtensionTypeID('ROTATIONS'));
+                if ~isempty(rotation_ext)
+                    if size(rotation_ext,2)>1
+                        error('Only one rotation extension object per block is allowed');
+                    end
+                    data = obj.rotationLibrary.data(rotation_ext(2,1)).array;
+                    if addIDs
+                        block.rotation=struct('type','rfShim','rotMat',reshape(data(:),[3 3]),'id',rotation_ext(2,1));
+                    else
+                        block.rotation=struct('type','rfShim','rotMat',reshape(data(:),[3 3]));
+                    end
+                end
                 % unpack delay
                 delay_ext=raw_block.ext(:,raw_block.ext(1,:)==obj.getExtensionTypeID('DELAYS'));
                 if ~isempty(delay_ext)
@@ -1198,7 +1234,8 @@ classdef Sequence < handle
                            raw_block.ext(1,i)~=obj.getExtensionTypeID('LABELSET') && ...
                            raw_block.ext(1,i)~=obj.getExtensionTypeID('LABELSET') && ...
                            raw_block.ext(1,i)~=obj.getExtensionTypeID('RF_SHIMS') && ...
-                           raw_block.ext(1,i)~=obj.getExtensionTypeID('DELAYS')
+                           raw_block.ext(1,i)~=obj.getExtensionTypeID('DELAYS') && ...
+                           raw_block.ext(1,i)~=obj.getExtensionTypeID('ROTATIONS')
                             warning('unknown extension ID %d', raw_block.ext(1,i));
                         end
                     end
