@@ -1,3 +1,5 @@
+_NOTE_ This is a fork of the main Pulseq respository, primarily focussed on the implementation of extending blocks to include arbitrary rotation matrices.  Currently, this functionally is not available in any on-scanner interpreter.   
+
 <div align="center">
 <a href="http://pulseq.github.io/" target="_blank">
 <img src="http://pulseq.github.io/logo_hires.png" width="250" alt="Pulseq logo"></img>
