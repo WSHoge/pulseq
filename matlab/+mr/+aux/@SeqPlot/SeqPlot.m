@@ -266,6 +266,7 @@ classdef SeqPlot < handle
                             p2=plot(tFactor*(t0+t+rf.delay),  angle(s*exp(1i*full_phaseOffset).*exp(1i*2*pi*t    *full_freqOffset)), tFactor*(t0+tc+rf.delay), angle(sc*exp(1i*full_phaseOffset).*exp(1i*2*pi*tc*full_freqOffset)),'xb', 'Parent',obj.ax(3));
                         end                        
                     end
+                    waveform = [];
                     for j=1:length(gradChannels)
                         grad=block.(gradChannels{j});
                         if ~isempty(grad)
@@ -278,9 +279,17 @@ classdef SeqPlot < handle
                                 waveform=1e-3* [grad.first; grad.waveform; grad.last];
                             else
                                 t=cumsum([0 grad.delay grad.riseTime grad.flatTime grad.fallTime]);
-                                waveform=1e-3*grad.amplitude*[0 0 1 1 0];
+                                waveform(:,j)=1e-3*grad.amplitude*[0 0 1 1 0];
                             end
-                            p=plot(tFactor*(t0+t),waveform,'Parent',obj.ax(3+j));
+                        end
+                    end
+                    if ~isempty(waveform)
+                        waveform(:,(size(waveform,2)+1):3) = 0;
+                        if isfield(block,'rotation')
+                            waveform = (waveform * block.rotation.rotMat);
+                        end
+                        for j=1:length(gradChannels)
+                            p=plot(tFactor*(t0+t),waveform(:,j),'Parent',obj.ax(3+j));
                         end
                     end
                 end

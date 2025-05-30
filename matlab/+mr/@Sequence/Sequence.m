@@ -1924,6 +1924,33 @@ classdef Sequence < handle
                         end
                     end
                 end
+                if isfield(block,'rotation')
+                    disp('');
+                    waveforms = []; wavepts = [];
+                    for j=1:length(gradChannels)
+                        if ~isempty(shape_pieces{j,iP})
+                            wavepts(:,j) = shape_pieces{j,iP}(1,:) .' ;
+                            waveforms(:,j) = shape_pieces{j,iP}(2,:) .' ;
+                        end
+                    end
+                    waveforms(:,size(waveforms,2)+1:length(gradChannels)) = 0;
+                    src = ( sum( waveforms ,1) ~= 0 ); % original gradient points
+
+                    waveforms_rot = waveforms * block.rotation.rotMat;
+                    tgt = logical( (sum(waveforms_rot,1)~=0) - src ); % new gradient points
+
+                    mdf = sum([ waveforms - waveforms_rot ],1) ~= 0;  % the gradients that were modified
+
+                    wavepts(:,size(wavepts,2)+1:length(gradChannels)) = 0;
+                    if (sum(tgt) > 0)
+                        wavepts(:,tgt) = mean(wavepts(:,src&mdf),2); % set the timing for the new gradient points as an average of the source gradient timing
+                    end
+
+                    for j=1:length(gradChannels)
+                        shape_pieces{j,iP}(1,:) = wavepts(:,j).';
+                        shape_pieces{j,iP}(2,:) = waveforms_rot(:,j).';
+                    end
+                end
                 if ~isempty(block.rf)
                     rf=block.rf;
                     tc=mr.calcRfCenter(rf);
@@ -2014,7 +2041,9 @@ classdef Sequence < handle
                             end
                             [~,d]=find(wave_data_local(1,:)>wave_data{j}(1,wave_cnt(j)),1);
                             wave_data{j}(:,wave_cnt(j)+(1:(len-d+1)))=wave_data_local(:,d:end);
-                            wave_cnt(j)=wave_cnt(j)+len-d+1;
+                            if ~isempty(wave_cnt(j)+len-d+1)
+                                wave_cnt(j)=wave_cnt(j)+len-d+1;
+                            end
                         end
                     end
                 end
