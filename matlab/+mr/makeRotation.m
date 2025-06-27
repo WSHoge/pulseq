@@ -16,9 +16,9 @@ switch numel(varargin{1})
         else
             theta = varargin{2};
         end
-        assert( ( phi >= -pi ) && ( phi < 2*pi) , 'makeRotation:invalidTheta',...
-            'rotation angle phi (%.2f) is invalid. should be within [-pi,2*pi] radians',phi);
-        assert( ( theta >= -pi ) && ( theta <= pi) , 'makeRotation:invalidPhi',...
+        assert( ( phi >= -pi ) && ( phi <= pi) , 'makeRotation:invalidPhi',...
+            'rotation angle phi (%.2f) is invalid. should be within [-pi,pi] radians',phi);
+        assert( ( theta >= -pi ) && ( theta <= pi) , 'makeRotation:invalidTheta',...
             'rotation angle theta (%.2f) is invalid. should be within [-pi,pi] radians',theta);
         q1=[cos(theta/2) 0 sin(theta/2) 0]; % y axis
         q2=[cos(phi/2) 0 0 sin(phi/2)]; % z axis
@@ -28,14 +28,17 @@ switch numel(varargin{1})
         v=v./sqrt(sum(v.^2));
         assert(nargin>1);
         phi = varargin{2};
-        assert( ( abs(phi) >= 0 ) & ( abs(phi) <= pi) , 'makeRotation:invalidPhi',...
-            'rotation angle phi (%.2f) is invalid. should be within [0,pi] radians',phi);
+        assert( ( phi >= 0 ) & ( phi <= 2*pi) , 'makeRotation:invalidPhi',...
+            'rotation angle phi (%.2f) is invalid. should be within [0,2*pi] radians',phi);
         rot.rotQuaternion=[cos(phi/2) sin(phi/2)*v];
     case 4
         rot.rotQuaternion=mr.aux.quat.normalize(varargin{1});
     case 9
         assert(all(size(varargin{1})==[3 3]));
-        rot.rotQuaternion=mr.aux.quat.fromRotMat(varargin{1});
+        rotmat = varargin{1};
+        assert( (norm( rotmat'*rotmat - eye(3) ) < 1e-15 ) , 'makeRotation:invalidRotMat',...
+                'input rotation matrix ([%f %f %f; %f %f %f; %f %f %f]) failed the orthogonoality test.',rotmat);
+        rot.rotQuaternion=mr.aux.quat.fromRotMat(rotmat);
     otherwise
         error('unexpected input to makeRotation');
 end
